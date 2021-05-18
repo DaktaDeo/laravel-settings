@@ -105,6 +105,61 @@ class TestCase extends BaseTestCase
         PHPUnit::assertEquals($value, json_decode($setting->payload, true));
     }
 
+    protected function assertDatabaseHasTeamSetting(string $property, $value, int $teamId): void
+    {
+        [$group, $name] = explode('.', $property);
+
+        $setting = SettingsProperty::query()
+            ->where('group', $group)
+            ->where('name', $name)
+            ->where('team_id', $teamId)
+            ->first();
+
+        PHPUnit::assertNotNull(
+            $setting,
+            "The setting {$group}.{$name} for team could not be found in the database"
+        );
+
+        PHPUnit::assertEquals($value, json_decode($setting->payload, true));
+    }
+
+    protected function assertDatabaseHasUserSetting(string $property, $value, int $userId): void
+    {
+        [$group, $name] = explode('.', $property);
+
+        $setting = SettingsProperty::query()
+            ->where('group', $group)
+            ->where('name', $name)
+            ->where('user_id', $userId)
+            ->first();
+
+        PHPUnit::assertNotNull(
+            $setting,
+            "The setting {$group}.{$name} for user could not be found in the database"
+        );
+
+        PHPUnit::assertEquals($value, json_decode($setting->payload, true));
+    }
+
+    protected function assertDatabaseHasTeamUserSetting(string $property, $value, int $teamId,int $userId): void
+    {
+        [$group, $name] = explode('.', $property);
+
+        $setting = SettingsProperty::query()
+            ->where('group', $group)
+            ->where('name', $name)
+            ->where('user_id', $userId)
+            ->where('team_id', $teamId)
+            ->first();
+
+        PHPUnit::assertNotNull(
+            $setting,
+            "The setting {$group}.{$name} for given user/team could not be found in the database"
+        );
+
+        PHPUnit::assertEquals($value, json_decode($setting->payload, true));
+    }
+
     protected function assertDatabaseHasEncryptedSetting(string $property, $value): void
     {
         [$group, $name] = explode('.', $property);

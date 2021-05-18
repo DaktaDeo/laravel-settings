@@ -28,13 +28,15 @@ class SettingsMapper
         return array_key_exists($settingsClass, $this->configs);
     }
 
-    public function load(string $settingsClass): Collection
+    public function load(string $settingsClass, int $teamId, ?int $userId): Collection
     {
         $config = $this->getConfig($settingsClass);
 
         $properties = $this->fetchProperties(
             $settingsClass,
-            $config->getReflectedProperties()->keys()
+            $teamId,
+            $config->getReflectedProperties()->keys(),
+            $userId
         );
 
         event(new LoadingSettings($settingsClass, $properties));
@@ -46,7 +48,9 @@ class SettingsMapper
 
     public function save(
         string $settingsClass,
-        Collection $properties
+        int $teamId,
+        Collection $properties,
+        ?int $userId
     ): Collection {
         $config = $this->getConfig($settingsClass);
 
@@ -54,7 +58,7 @@ class SettingsMapper
 
         $changedProperties = $properties
             ->reject(fn ($payload, string $name) => $config->isLocked($name))
-            ->each(function ($payload, string $name) use ($config) {
+            ->each(function ($payload, string $name) use ($config, $userId, $teamId) {
                 if ($cast = $config->getCast($name)) {
                     $payload = $cast->set($payload);
                 }
@@ -66,20 +70,22 @@ class SettingsMapper
                 $config->getRepository()->updatePropertyPayload(
                     $config->getGroup(),
                     $name,
-                    $payload
+                    $payload,
+                    $teamId,
+                    $userId
                 );
             });
 
         return $this
-            ->fetchProperties($settingsClass, $config->getLocked())
+            ->fetchProperties($settingsClass, $teamId, $config->getLocked(),  $userId)
             ->merge($changedProperties);
     }
 
-    public function fetchProperties(string $settingsClass, Collection $names): Collection
+    public function fetchProperties(string $settingsClass,int $teamId, Collection $names, ?int $userId): Collection
     {
         $config = $this->getConfig($settingsClass);
 
-        return collect($config->getRepository()->getPropertiesInGroup($config->getGroup()))
+        return collect($config->getRepository()->getPropertiesInGroup($config->getGroup(), $teamId, $userId))
             ->filter(fn ($payload, string $name) => $names->contains($name))
             ->map(function ($payload, string $name) use ($config) {
                 if ($config->isEncrypted($name)) {

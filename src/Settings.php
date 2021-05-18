@@ -20,6 +20,8 @@ abstract class Settings implements Arrayable, Jsonable, Responsable, Serializabl
     private SettingsConfig $config;
 
     private bool $loaded = false;
+    protected ?int $teamId = 0;
+    protected ?int $userId = null;
 
     private bool $configInitialized = false;
 
@@ -47,7 +49,7 @@ abstract class Settings implements Arrayable, Jsonable, Responsable, Serializabl
      *
      * @return static
      */
-    public static function fake(array $values): self
+    public static function fake(array $values, ?int $teamId=0, ?int $userId = null): self
     {
         $settingsMapper = app(SettingsMapper::class);
 
@@ -57,7 +59,7 @@ abstract class Settings implements Arrayable, Jsonable, Responsable, Serializabl
             ->reject(fn (string $name) => array_key_exists($name, $values));
 
         $mergedValues = $settingsMapper
-            ->fetchProperties(static::class, $propertiesToLoad)
+            ->fetchProperties(static::class,$teamId, $propertiesToLoad, $userId)
             ->merge($values)
             ->toArray();
 
@@ -66,9 +68,11 @@ abstract class Settings implements Arrayable, Jsonable, Responsable, Serializabl
         ));
     }
 
-    public function __construct(array $values = [])
+    public function __construct(array $values = [], ?int $teamId=0, ?int $userId = null)
     {
         $this->ensureConfigIsLoaded();
+        $this->userId = $userId;
+        $this->teamId = $teamId;
 
         foreach ($this->config->getReflectedProperties()->keys() as $name) {
             unset($this->{$name});
@@ -118,7 +122,7 @@ abstract class Settings implements Arrayable, Jsonable, Responsable, Serializabl
 
         event(new SavingSettings($properties, $this->originalValues, $this));
 
-        $values = $this->mapper->save(static::class, $properties);
+        $values = $this->mapper->save(static::class,$this->teamId, $properties, $this->userId);
 
         $this->fill($values);
         $this->originalValues = $values;
@@ -194,7 +198,7 @@ abstract class Settings implements Arrayable, Jsonable, Responsable, Serializabl
             return $this;
         }
 
-        $values ??= $this->mapper->load(static::class);
+        $values ??= $this->mapper->load(static::class,$this->teamId,$this->userId);
 
         $this->loaded = true;
 

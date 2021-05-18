@@ -22,56 +22,69 @@ class RedisSettingsRepository implements SettingsRepository
             : '';
     }
 
-    public function getPropertiesInGroup(string $group): array
+    public function getPropertiesInGroup(string $group, ?int $teamId = 0, ?int $userId = null): array
     {
-        return collect($this->connection->hGetAll($this->prefix . $group))
-            ->mapWithKeys(function ($payload, string $name) {
+        $defaults = collect($this->connection->hGetAll($this->getKey($group,0,$userId)));
+        $overrulers = collect($this->connection->hGetAll($this->getKey($group,$teamId,$userId)));
+        $merged = $defaults->merge($overrulers);
+        return $merged->mapWithKeys(function ($payload, string $name) {
                 return [$name => json_decode($payload, true)];
             })->toArray();
     }
 
-    public function checkIfPropertyExists(string $group, string $name): bool
+    public function checkIfPropertyExists(string $group, string $name, ?int $teamId = 0, ?int $userId = null): bool
     {
-        return $this->connection->hExists($this->prefix . $group, $name);
+        return $this->connection->hExists($this->getKey($group,$teamId,$userId), $name);
     }
 
-    public function getPropertyPayload(string $group, string $name)
+    public function getPropertyPayload(string $group, string $name, ?int $teamId = 0, ?int $userId = null)
     {
-        return json_decode($this->connection->hGet($this->prefix . $group, $name));
+        return json_decode($this->connection->hGet($this->getKey($group,$teamId,$userId), $name));
     }
 
-    public function createProperty(string $group, string $name, $payload): void
+    public function createProperty(string $group, string $name, $payload, ?int $teamId = 0, ?int $userId = null): void
     {
-        $this->connection->hSet($this->prefix . $group, $name, json_encode($payload));
+        $this->connection->hSet($this->getKey($group,$teamId,$userId), $name, json_encode($payload));
     }
 
-    public function updatePropertyPayload(string $group, string $name, $value): void
+    public function updatePropertyPayload(string $group, string $name, $value, ?int $teamId = 0, ?int $userId = null): void
     {
-        $this->connection->hSet($this->prefix . $group, $name, json_encode($value));
+        $this->connection->hSet($this->getKey($group,$teamId,$userId), $name, json_encode($value));
     }
 
-    public function deleteProperty(string $group, string $name): void
+    public function deleteProperty(string $group, string $name, ?int $teamId = 0, ?int $userId = null): void
     {
-        $this->connection->hDel($this->prefix . $group, $name);
+        $this->connection->hDel($this->getKey($group,$teamId,$userId), $name);
     }
 
-    public function lockProperties(string $group, array $properties): void
+    public function lockProperties(string $group, array $properties, ?int $teamId = 0, ?int $userId = null): void
     {
-        $this->connection->sAdd($this->getLocksSetKey($group), ...$properties);
+        $this->connection->sAdd($this->getLocksSetKey($group,$teamId,$userId), ...$properties);
     }
 
-    public function unlockProperties(string $group, array $properties): void
+    public function unlockProperties(string $group, array $properties, ?int $teamId = 0, ?int $userId = null): void
     {
-        $this->connection->sRem($this->getLocksSetKey($group), ...$properties);
+        $this->connection->sRem($this->getLocksSetKey($group,$teamId,$userId), ...$properties);
     }
 
-    public function getLockedProperties(string $group): array
+    public function getLockedProperties(string $group, ?int $teamId = 0, ?int $userId = null): array
     {
-        return $this->connection->sMembers($this->getLocksSetKey($group));
+        return $this->connection->sMembers($this->getLocksSetKey($group, $userId, $teamId));
     }
 
-    protected function getLocksSetKey(string $group): string
+    protected function getLocksSetKey(string $group, ?int $teamId = 0, ?int $userId = null): string
     {
-        return $this->prefix . 'locks.' . $group;
+        if($userId !== null ){
+            return $this->prefix .".locks.$teamId.$userId.$group";
+        }
+        return $this->prefix .".locks.$teamId.$group";
+    }
+
+    public function getKey(string $group, ?int $teamId = 0, ?int $userId = null): string
+    {
+        if($userId !== null ){
+            return $this->prefix ."$teamId.$userId.$group";
+        }
+        return $this->prefix . "$teamId.$group";
     }
 }

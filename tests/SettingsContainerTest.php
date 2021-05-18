@@ -44,7 +44,7 @@ class SettingsContainerTest extends TestCase
 
         $log = DB::connection()->getQueryLog();
 
-        $this->assertCount(1, $log);
+        $this->assertCount(2, $log);
     }
 
     /** @test */

@@ -66,7 +66,7 @@ class SettingsTest extends TestCase
         });
 
         /** @var \Spatie\LaravelSettings\Tests\TestClasses\DummySettings $settings */
-        $settings = resolve(DummySettings::class);
+        $settings = resolve(DummySettings::class, ['teamId' => 1, 'userId' => 1]);
 
         $this->assertEquals('Ruben', $settings->string);
         $this->assertEquals(false, $settings->bool);
@@ -87,7 +87,7 @@ class SettingsTest extends TestCase
     {
         $this->expectException(MissingSettings::class);
 
-        resolve(DummySettings::class)->int;
+        resolve(DummySettings::class, ['teamId' => 1, 'userId' => 1])->int;
     }
 
     /** @test */
@@ -97,7 +97,7 @@ class SettingsTest extends TestCase
 
         $this->expectException(ErrorException::class);
 
-        resolve(DummySimpleSettings::class)->band;
+        resolve(DummySimpleSettings::class, ['teamId' => 1, 'userId' => 1])->band;
     }
 
     /** @test */
@@ -129,7 +129,7 @@ class SettingsTest extends TestCase
         });
 
         /** @var \Spatie\LaravelSettings\Tests\TestClasses\DummySettings $settings */
-        $settings = resolve(DummySettings::class);
+        $settings = resolve(DummySettings::class, ['teamId' => 1 ,'userId' => null]);
 
         $settings->fill([
             'string' => 'Brent',
@@ -152,19 +152,20 @@ class SettingsTest extends TestCase
 
         $settings->save();
 
-        $this->assertDatabaseHasSetting('dummy.string', 'Brent');
-        $this->assertDatabaseHasSetting('dummy.bool', true);
-        $this->assertDatabaseHasSetting('dummy.int', 69);
-        $this->assertDatabaseHasSetting('dummy.array', ['Bono', 'Adam', 'The Edge']);
-        $this->assertDatabaseHasSetting('dummy.nullable_string', null);
-        $this->assertDatabaseHasSetting('dummy.dto', ['name' => 'Rias']);
-        $this->assertDatabaseHasSetting('dummy.dto_array', [
+        $this->assertDatabaseHasTeamSetting('dummy.string', 'Brent',1);
+        $this->assertDatabaseHasTeamSetting('dummy.bool', true,1);
+        $this->assertDatabaseHasTeamSetting('dummy.int', 69,1);
+        $this->assertDatabaseHasTeamSetting('dummy.array', ['Bono', 'Adam', 'The Edge'],1);
+        $this->assertDatabaseHasTeamSetting('dummy.nullable_string', null,1);
+        $this->assertDatabaseHasTeamSetting('dummy.dto', ['name' => 'Rias'],1);
+        $this->assertDatabaseHasTeamSetting('dummy.dto_array', [
             ['name' => 'Wouter'],
             ['name' => 'Jef'],
-        ]);
+        ],1);
         $this->assertEquals($dateTime, $settings->date_time);
         $this->assertEquals($carbon, $settings->carbon);
         $this->assertNull($settings->nullable_date_time_zone);
+
     }
 
     /** @test */
@@ -172,7 +173,7 @@ class SettingsTest extends TestCase
     {
         $this->expectException(MissingSettings::class);
 
-        $settings = resolve(DummySettings::class);
+        $settings = resolve(DummySettings::class, ['teamId' => 1 ,'userId' => null]);
 
         $settings->fill([
             'string' => 'Brent',
@@ -225,7 +226,7 @@ class SettingsTest extends TestCase
     {
         $this->migrateDummySimpleSettings();
 
-        $settings = resolve(DummySimpleSettings::class);
+        $settings = resolve(DummySimpleSettings::class, ['teamId' => 1 ,'userId' => null]);
 
         $settings->lock('description');
 
@@ -244,7 +245,7 @@ class SettingsTest extends TestCase
     {
         $this->migrateDummySimpleSettings();
 
-        $settings = resolve(DummySimpleSettings::class);
+        $settings = resolve(DummySimpleSettings::class, ['teamId' => 1 ,'userId' => null]);
 
         $settings->lock('name');
         $settings->name = 'Nina Simone';
@@ -264,7 +265,7 @@ class SettingsTest extends TestCase
     {
         $this->migrateDummySimpleSettings();
 
-        $settings = resolve(DummySimpleSettings::class)
+        $settings = resolve(DummySimpleSettings::class, ['teamId' => 1 ,'userId' => null])
             ->fill([
                 'name' => 'Nina Simone',
             ])
@@ -279,7 +280,7 @@ class SettingsTest extends TestCase
     {
         $this->migrateDummySimpleSettings();
 
-        $settings = resolve(DummySimpleSettings::class);
+        $settings = resolve(DummySimpleSettings::class, ['teamId' => 1 ,'userId' => null]);
         $settings->name = 'Nina Simone';
         $settings->save();
 
@@ -294,7 +295,7 @@ class SettingsTest extends TestCase
 
         $this->migrateDummySimpleSettings();
 
-        resolve(DummySimpleSettings::class)->name;
+        resolve(DummySimpleSettings::class, ['teamId' => 1 ,'userId' => null])->name;
 
         Event::assertDispatched(LoadingSettings::class, function (LoadingSettings $event) {
             $this->assertEquals(DummySimpleSettings::class, $event->settingsClass);
@@ -313,7 +314,7 @@ class SettingsTest extends TestCase
             $event->properties->put('name', 'Nina Simone');
         });
 
-        $this->assertEquals('Nina Simone', resolve(DummySimpleSettings::class)->name);
+        $this->assertEquals('Nina Simone', resolve(DummySimpleSettings::class, ['teamId' => 1 ,'userId' => null])->name);
     }
 
     /** @test */
@@ -323,7 +324,7 @@ class SettingsTest extends TestCase
 
         $this->migrateDummySimpleSettings();
 
-        $settings = resolve(DummySimpleSettings::class);
+        $settings = resolve(DummySimpleSettings::class, ['teamId' => 1 ,'userId' => null]);
         $settings->name;
 
         Event::assertDispatched(SettingsLoaded::class, function (SettingsLoaded $event) use ($settings) {
@@ -340,7 +341,7 @@ class SettingsTest extends TestCase
 
         $this->migrateDummySimpleSettings();
 
-        $settings = resolve(DummySimpleSettings::class);
+        $settings = resolve(DummySimpleSettings::class, ['teamId' => 1 ,'userId' => null]);
         $settings->name = 'New Name';
         $settings->save();
 
@@ -364,7 +365,7 @@ class SettingsTest extends TestCase
             $event->properties->put('name', 'Nina Simone');
         });
 
-        $settings = resolve(DummySimpleSettings::class)->save();
+        $settings = resolve(DummySimpleSettings::class, ['teamId' => 1 ,'userId' => null])->save();
 
         $this->assertEquals('Nina Simone', $settings->name);
     }
@@ -376,7 +377,7 @@ class SettingsTest extends TestCase
 
         $this->migrateDummySimpleSettings();
 
-        $settings = resolve(DummySimpleSettings::class)->save();
+        $settings = resolve(DummySimpleSettings::class, ['teamId' => 1 ,'userId' => null])->save();
 
         Event::assertDispatched(SettingsSaved::class, function (SettingsSaved $event) use ($settings) {
             $this->assertEquals($settings, $event->settings);
@@ -476,7 +477,7 @@ class SettingsTest extends TestCase
 
         DB::connection()->enableQueryLog();
 
-        $name = resolve(DummySimpleSettings::class)->name;
+        $name = resolve(DummySimpleSettings::class, ['teamId' => 1 ,'userId' => null])->name;
 
         $log = DB::connection()->getQueryLog();
 
@@ -525,8 +526,10 @@ class SettingsTest extends TestCase
 
         $log = DB::connection()->getQueryLog();
 
+        ray($log);
+
         $this->assertEquals('Louis Armstrong', $name);
-        $this->assertCount(1, $log);
+        $this->assertCount(2, $log);
     }
 
     /** @test */
@@ -534,7 +537,7 @@ class SettingsTest extends TestCase
     {
         $this->migrateDummySettings(CarbonImmutable::create('2020-05-16')->startOfDay());
 
-        $settings = resolve(DummySettings::class);
+        $settings = resolve(DummySettings::class, ['teamId' => 1 ,'userId' => null]);
 
         $serialized = serialize($settings);
 
@@ -564,7 +567,7 @@ class SettingsTest extends TestCase
     {
         $this->migrateDummySimpleSettings();
 
-        $serialized = serialize(resolve(DummySimpleSettings::class));
+        $serialized = serialize(resolve(DummySimpleSettings::class, ['teamId' => 1 ,'userId' => null]));
 
         /** @var \Spatie\LaravelSettings\Tests\TestClasses\DummySimpleSettings $settings */
         $settings = unserialize($serialized);

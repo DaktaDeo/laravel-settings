@@ -11,6 +11,9 @@ class CreateSettingsTable extends Migration
         Schema::create('settings', function (Blueprint $table): void {
             $table->id();
 
+            $table->bigInteger('user_id')->unsigned()->nullable()->index();
+            $table->bigInteger('team_id')->unsigned()->default(0)->index();
+
             $table->string('group')->index();
             $table->string('name');
             $table->boolean('locked');

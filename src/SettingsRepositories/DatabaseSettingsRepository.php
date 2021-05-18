@@ -19,7 +19,7 @@ class DatabaseSettingsRepository implements SettingsRepository
         $this->connection = $config['connection'] ?? null;
     }
 
-    public function getPropertiesInGroup(string $group): array
+    public function getPropertiesInGroup(string $group, ?int $teamId = 0, ?int $userId = null): array
     {
         /**
          * @var \Spatie\LaravelSettings\Models\SettingsProperty $temp
@@ -27,84 +27,145 @@ class DatabaseSettingsRepository implements SettingsRepository
          */
         $temp = new $this->propertyModel;
 
-        return DB::connection($this->connection ?? $temp->getConnectionName())
+        $defaults = DB::connection($this->connection ?? $temp->getConnectionName())
             ->table($temp->getTable())
             ->where('group', $group)
-            ->get(['name', 'payload'])
-            ->mapWithKeys(function ($object) {
-                return [$object->name => json_decode($object->payload, true)];
+            ->where('team_id', '=', 0)
+            ->whereNull('user_id')
+            ->get(['name', 'payload']);
+
+        $overrulers = DB::connection($this->connection ?? $temp->getConnectionName())
+            ->table($temp->getTable())
+            ->where('group', $group)
+            ->where('team_id', $teamId)
+            ->where(function ($query) use ($userId) {
+                $query->where('user_id', $userId)->orWhereNull('user_id');
             })
-            ->toArray();
+            ->get(['name', 'payload']);
+
+        $merged = $defaults->merge($overrulers);
+
+        return $merged->mapWithKeys(function ($object) {
+            return [$object->name => json_decode($object->payload, true)];
+        })->toArray();
     }
 
-    public function checkIfPropertyExists(string $group, string $name): bool
+    public function checkIfPropertyExists(string $group, string $name, ?int $teamId = 0, ?int $userId = null): bool
     {
         return $this->propertyModel::on($this->connection)
             ->where('group', $group)
+            ->where('team_id', $teamId)
+            ->where(function ($query) use ($userId) {
+                $query->where('user_id', $userId)->orWhereNull('user_id');
+            })
             ->where('name', $name)
             ->exists();
     }
 
-    public function getPropertyPayload(string $group, string $name)
+    public function getPropertyPayload(string $group, string $name, ?int $teamId = 0, ?int $userId = null)
     {
         $setting = $this->propertyModel::on($this->connection)
             ->where('group', $group)
             ->where('name', $name)
+            ->where('team_id', $teamId)
+            ->where(function ($query) use ($userId) {
+                $query->where('user_id', $userId)->orWhereNull('user_id');
+            })
             ->first('payload')
             ->toArray();
 
         return json_decode($setting['payload']);
     }
 
-    public function createProperty(string $group, string $name, $payload): void
+    public function createProperty(string $group, string $name, $payload, ?int $teamId = 0, ?int $userId = null): void
     {
         $this->propertyModel::on($this->connection)->create([
             'group' => $group,
             'name' => $name,
+            'team_id' => $teamId,
+            'user_id' => $userId,
             'payload' => json_encode($payload),
             'locked' => false,
         ]);
     }
 
-    public function updatePropertyPayload(string $group, string $name, $value): void
+    public function updatePropertyPayload(string $group, string $name, $value, ?int $teamId = 0, ?int $userId = null): void
     {
+        if(!$this->checkIfPropertyExists($group,$name,$teamId,$userId)){
+            $this->createProperty($group,$name,$value,$teamId,$userId);
+            return;
+        }
+        if ($userId !== null) {
+            $this->propertyModel::on($this->connection)
+                ->where('group', $group)
+                ->where('name', $name)
+                ->where('team_id', $teamId)
+                ->where('user_id', $userId)
+                ->update([
+                    'payload' => json_encode($value),
+                ]);
+            return;
+        }
         $this->propertyModel::on($this->connection)
             ->where('group', $group)
             ->where('name', $name)
+            ->where('team_id', $teamId)
             ->update([
                 'payload' => json_encode($value),
             ]);
     }
 
-    public function deleteProperty(string $group, string $name): void
+    public function deleteProperty(string $group, string $name, ?int $teamId = 0, ?int $userId = null): void
     {
+        if ($userId !== null) {
+            $this->propertyModel::on($this->connection)
+                ->where('group', $group)
+                ->where('name', $name)
+                ->where('team_id', $teamId)
+                ->where('user_id', $userId)
+                ->delete();
+            return;
+        }
         $this->propertyModel::on($this->connection)
             ->where('group', $group)
             ->where('name', $name)
+            ->where('team_id', $teamId)
             ->delete();
     }
 
-    public function lockProperties(string $group, array $properties): void
+    public function lockProperties(string $group, array $properties, ?int $teamId = 0, ?int $userId = null): void
     {
         $this->propertyModel::on($this->connection)
             ->where('group', $group)
             ->whereIn('name', $properties)
+            ->where('team_id', $teamId)
+            ->where(function ($query) use ($userId) {
+                $query->where('user_id', $userId)->orWhereNull('user_id');
+            })
             ->update(['locked' => true]);
     }
 
-    public function unlockProperties(string $group, array $properties): void
+    public function unlockProperties(string $group, array $properties, ?int $teamId = 0, ?int $userId = null): void
     {
         $this->propertyModel::on($this->connection)
             ->where('group', $group)
             ->whereIn('name', $properties)
+            ->where('team_id', $teamId)
+            ->where(function ($query) use ($userId) {
+                $query->where('user_id', $userId)->orWhereNull('user_id');
+            })
             ->update(['locked' => false]);
     }
 
-    public function getLockedProperties(string $group): array
+    public function getLockedProperties(string $group, ?int $teamId = 0, ?int $userId = null): array
     {
         return $this->propertyModel::on($this->connection)
             ->where('group', $group)
             ->where('locked', true)
+            ->where('team_id', $teamId)
+            ->where(function ($query) use ($userId) {
+                $query->where('user_id', $userId)->orWhereNull('user_id');
+            })
             ->pluck('name')
             ->toArray();
     }

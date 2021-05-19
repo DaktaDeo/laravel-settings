@@ -38,6 +38,7 @@ class SettingsMapper
             $config->getReflectedProperties()->keys(),
             $userId
         );
+        ray($properties);
 
         event(new LoadingSettings($settingsClass, $properties));
 

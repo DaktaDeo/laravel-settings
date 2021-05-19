@@ -212,9 +212,12 @@ abstract class Settings implements Arrayable, Jsonable, Responsable, Serializabl
 
     private function ensureConfigIsLoaded(): self
     {
+        ray('init');
         if ($this->configInitialized) {
+            ray('->self');
             return $this;
         }
+        ray('->new');
 
         $this->mapper = app(SettingsMapper::class);
         $this->config = $this->mapper->initialize(static::class);

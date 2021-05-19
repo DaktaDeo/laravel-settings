@@ -152,6 +152,8 @@ class SettingsTest extends TestCase
 
         $settings->save();
 
+        ray($settings->toArray());
+
         $this->assertDatabaseHasTeamSetting('dummy.string', 'Brent',1);
         $this->assertDatabaseHasTeamSetting('dummy.bool', true,1);
         $this->assertDatabaseHasTeamSetting('dummy.int', 69,1);

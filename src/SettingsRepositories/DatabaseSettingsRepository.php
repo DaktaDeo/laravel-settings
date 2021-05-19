@@ -12,21 +12,18 @@ class DatabaseSettingsRepository implements SettingsRepository
 {
     /** @var string|\Illuminate\Database\Eloquent\Model */
     protected string $propertyModel;
-    protected Model $model;
 
     protected ?string $connection;
 
     public function __construct(array $config)
     {
         $this->propertyModel = $config['model'] ?? SettingsProperty::class;
-        $this->model = new $this->propertyModel;
-
-        $this->connection = $config['connection'] ?? $this->model->getConnectionName();
+        $this->connection = $config['connection'] ?? null;
     }
 
     public function getBuilderForGlobalDefaults(string $group): Builder
     {
-        return $this->model::on($this->connection)
+        return $this->propertyModel::on($this->connection)
             ->where('group', $group)
             ->where('team_id', '=', 0)
             ->whereNull('user_id');
@@ -34,7 +31,7 @@ class DatabaseSettingsRepository implements SettingsRepository
 
     public function getBuilderForTeam(int $teamId, string $group): Builder
     {
-        return $this->model::on($this->connection)
+        return $this->propertyModel::on($this->connection)
             ->where('group', $group)
             ->where('team_id', $teamId)
             ->whereNull('user_id');
@@ -42,14 +39,14 @@ class DatabaseSettingsRepository implements SettingsRepository
 
     public function getBuilderForUser(int $userId, string $group): Builder
     {
-        return $this->model::on($this->connection)
+        return $this->propertyModel::on($this->connection)
             ->where('group', $group)
             ->where('user_id', $userId);
     }
 
     public function getBuilderForUserAndTeam(int $userId, int $teamId, string $group): Builder
     {
-        return $this->model::on($this->connection)
+        return $this->propertyModel::on($this->connection)
             ->where('group', $group)
             ->where('user_id', $userId)
             ->where('team_id', $teamId);
@@ -59,6 +56,11 @@ class DatabaseSettingsRepository implements SettingsRepository
     {
         $cols = ['name', 'payload'];
 
+        $temp = $this->connection;
+
+        $model = new $this->propertyModel;
+        $this->connection = $this->connection ?? $model->getConnectionName();
+
         $defaults = $this->makeKeyValueArray($this->getBuilderForGlobalDefaults($group)->get($cols));
 
         $forTeam = ($teamId > 0) ? $this->makeKeyValueArray($this->getBuilderForTeam($teamId, $group)->get($cols)) : [];
@@ -66,6 +68,8 @@ class DatabaseSettingsRepository implements SettingsRepository
         $forUser = ($userId > 0) ? $this->makeKeyValueArray($this->getBuilderForUser($userId, $group)->get($cols)) : [];
 
         $settings = collect($defaults)->merge($forTeam)->merge($forUser)->merge($forUserTeam);
+
+        $this->connection = $temp;
 
         return $settings->toArray();
     }
@@ -146,7 +150,7 @@ class DatabaseSettingsRepository implements SettingsRepository
 
     public function deleteProperty(string $group, string $name): void
     {
-         $this->propertyModel::on($this->connection)
+        $this->propertyModel::on($this->connection)
             ->where('group', $group)
             ->where('name', $name)
             ->delete();

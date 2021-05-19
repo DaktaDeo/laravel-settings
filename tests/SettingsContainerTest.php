@@ -66,13 +66,13 @@ class SettingsContainerTest extends TestCase
         $settingsB = resolve(DummySimpleSettings::class);
 
         $settingsA->name = 'Nina Simone';
-
         $this->assertEquals('Nina Simone', $settingsB->name);
 
+        ray($settingsA->toArray())->color('blue');
         $settingsB->lock('name');
-
         $settingsB->save();
 
+        ray($settingsB->toArray())->color('green');
         $this->assertEquals('Louis Armstrong', $settingsA->name);
     }
 

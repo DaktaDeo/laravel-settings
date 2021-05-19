@@ -222,6 +222,48 @@ class SettingsTest extends TestCase
     }
 
     /** @test */
+    public function it_can_handle_saving_cascading_settings()
+    {
+        $this->migrateDummySimpleSettings();
+
+        $global = resolve(DummySimpleSettings::class);
+        $forTeam = resolve(DummySimpleSettings::class, ['teamId' => 1]);
+        $forUser = resolve(DummySimpleSettings::class, ['userId' => 2]);
+        $forTeamAnduser = resolve(DummySimpleSettings::class, ['teamId' => 1, 'userId' => 2]);
+
+        $global->name = 'hello world!';
+        $global->save();
+
+        $forTeam->name = 'hello team!';
+        $forTeam->save();
+
+        $forUser->name = 'hello v.!';
+        $forUser->save();
+
+        $forTeamAnduser->name = 'hello v. welkom in our team!';
+        $forTeamAnduser->save();
+
+        $this->assertDatabaseHasTeamSetting('dummy_simple.name', 'hello team!',1);
+
+        $this->assertEquals('hello world!', $global->name);
+        $this->assertEquals('hello team!', $forTeam->name);
+        $this->assertEquals('hello v.!', $forUser->name);
+        $this->assertEquals('hello v. welkom in our team!', $forTeamAnduser->name);
+
+        $settings1 = resolve(DummySimpleSettings::class, ['teamId' => 1 ,'userId' => null]);
+        $this->assertEquals('hello team!', $settings1->name);
+
+        $settings2 = resolve(DummySimpleSettings::class, ['teamId' => 1 ,'userId' => 5]);
+        $this->assertEquals('hello team!', $settings2->name);
+
+        $settings3 = resolve(DummySimpleSettings::class, ['teamId' => 15 ,'userId' => 5]);
+        $this->assertEquals('hello world!', $settings3->name);
+
+        $settings4 = resolve(DummySimpleSettings::class, ['teamId' => 1 ,'userId' => 2]);
+        $this->assertEquals('hello v. welkom in our team!', $settings4->name);
+    }
+
+    /** @test */
     public function it_can_lock_settings()
     {
         $this->migrateDummySimpleSettings();
@@ -529,7 +571,7 @@ class SettingsTest extends TestCase
         ray($log);
 
         $this->assertEquals('Louis Armstrong', $name);
-        $this->assertCount(2, $log);
+        $this->assertCount(1, $log);
     }
 
     /** @test */

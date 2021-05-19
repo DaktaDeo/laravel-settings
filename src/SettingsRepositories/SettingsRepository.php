@@ -32,20 +32,20 @@ interface SettingsRepository
     /**
      * Delete a property from a group
      */
-    public function deleteProperty(string $group, string $name, ?int $teamId = 0, ?int $userId = null): void;
+    public function deleteProperty(string $group, string $name): void;
 
     /**
      * Lock a set of properties for a specific group
      */
-    public function lockProperties(string $group, array $properties, ?int $teamId = 0, ?int $userId = null): void;
+    public function lockProperties(string $group, array $properties): void;
 
     /**
      * Unlock a set of properties for a group
      */
-    public function unlockProperties(string $group, array $properties, ?int $teamId = 0, ?int $userId = null): void;
+    public function unlockProperties(string $group, array $properties): void;
 
     /**
      * Get all the locked properties within a group
      */
-    public function getLockedProperties(string $group, ?int $teamId = 0, ?int $userId = null): array;
+    public function getLockedProperties(string $group): array;
 }

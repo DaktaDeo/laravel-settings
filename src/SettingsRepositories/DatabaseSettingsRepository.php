@@ -123,8 +123,18 @@ class DatabaseSettingsRepository implements SettingsRepository
 
     public function updatePropertyPayload(string $group, string $name, $value, ?int $teamId = 0, ?int $userId = null): void
     {
+        $this->getMostSpecificBuilder($group, $teamId, $userId)
+            ->update([
+                'payload' => json_encode($value),
+            ]);
+    }
+
+    public function updateOrCreatePropertyPayload(string $group, string $name, $value, ?int $teamId = 0, ?int $userId = null): void
+    {
         if (!$this->checkIfPropertyExists($group, $name, $teamId, $userId)) {
-            $this->createProperty($group, $name, $value, $teamId, $userId);
+            ray('creating propery:');
+            ray()->toJson(['group' => $group,'name' => $name, 'team' => $teamId, 'user' => $userId, 'payload' => $value]);
+            //$this->createProperty($group, $name, $value, $teamId, $userId);
             return;
         }
 
@@ -133,6 +143,7 @@ class DatabaseSettingsRepository implements SettingsRepository
                 'payload' => json_encode($value),
             ]);
     }
+
 
     public function getMostSpecificBuilder(string $group, ?int $teamId = 0, ?int $userId = null): Builder
     {

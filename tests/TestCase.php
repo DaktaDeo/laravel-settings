@@ -131,6 +131,7 @@ class TestCase extends BaseTestCase
             ->where('group', $group)
             ->where('name', $name)
             ->where('user_id', $userId)
+            ->where('team_id', '=',0)
             ->first();
 
         PHPUnit::assertNotNull(

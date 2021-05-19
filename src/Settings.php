@@ -116,13 +116,13 @@ abstract class Settings implements Arrayable, Jsonable, Responsable, Serializabl
         return $this;
     }
 
-    public function save(): self
+    public function save(?int $teamId = 0,?int $userId = null): self
     {
         $properties = $this->toCollection();
 
         event(new SavingSettings($properties, $this->originalValues, $this));
 
-        $values = $this->mapper->save(static::class,$this->teamId, $properties, $this->userId);
+        $values = $this->mapper->save(static::class, $properties,$teamId, $userId);
 
         $this->fill($values);
         $this->originalValues = $values;

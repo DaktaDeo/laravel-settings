@@ -49,9 +49,9 @@ class SettingsMapper
 
     public function save(
         string $settingsClass,
-        int $teamId,
         Collection $properties,
-        ?int $userId
+        ?int $teamId = 0,
+        ?int $userId = null
     ): Collection {
         $config = $this->getConfig($settingsClass);
 
